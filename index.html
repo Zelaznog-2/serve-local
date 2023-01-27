@@ -26,16 +26,52 @@
       let socket = io();
 
       let startTime
-
+      let timeLimite = 0
       setInterval(() => {
+
         startTime = Date.now()
         socket.emit('ping')
+
+        if (timeLimite === 60) {
+          timeLimite = 0;
+          sendLatencyAPI()
+        }
+        timeLimite += 1
+        console.log(`${timeLimite}s`);
         }, 1000)
-        
+
         socket.on('pong', () => {
+          const dateNow = new Date()
+          const dateString = `${dateNow.getFullYear()}-${dateNow.getMonth() + 1}-${dateNow.getDate()}`
+          const timeString = `${dateNow.getHours()}:${dateNow.getMinutes()}:${dateNow.getSeconds()}`
           let latency = Date.now() - startTime
-          console.log(latency + ' ' +  'ms')
+          const arrayLatency = {
+            latency,
+            creation_time: `${dateString} ${timeString}`
+          }
+          let tmpArray = localStorage.getItem('ocular-latency-session')
+          if (tmpArray === null) {
+            localStorage.setItem('ocular-latency-session', JSON.stringify([arrayLatency]))
+          } else {
+            tmpArray = JSON.parse(tmpArray)
+            tmpArray.push(arrayLatency)
+            localStorage.setItem('ocular-latency-session', JSON.stringify(tmpArray))
+          }
       })
+
+      function sendLatencyAPI() {
+        const arrayLatences = localStorage.getItem('ocular-latency-session')
+        if (arrayLatences) {
+          const dateApiLatency = {
+            session_id: 122,
+            app: 'cammer',
+            latency: JSON.parse(arrayLatences),
+            creation_time: '2023-01-25 00:00:00'
+          }
+          localStorage.removeItem('ocular-latency-session')
+          console.log(dateApiLatency);
+        }
+      }
     </script>
   </body>
 </html>
